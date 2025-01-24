@@ -24,3 +24,18 @@ Options:
   -q, --quiet...                       Decrease logging verbosity
   -h, --help                           Print help
 ```
+
+### Examples
+
+1. Select images with width >= 1920, height >= 1080, with a score < 2
+```console
+coko7@example:~$ kanumi -t img -W 1920.. -H 1080.. -s 0..1
+coko7@example:~$ kanumi -t img -W 1920.. -H 1080.. -s ..1
+```
+
+2. Select tiny images with a score of exactly 5:
+```console
+coko7@example:~$ kanumi -t i -W ..50 -H ..50 -s 5
+coko7@example:~$ kanumi -t i -W ..50 -H 0..50 -s 5..5
+coko7@example:~$ kanumi -t i -W 0..50 -H ..50 -s 5..5
+```
