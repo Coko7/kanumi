@@ -4,14 +4,7 @@ use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::{ops::RangeInclusive, path::PathBuf};
 
-#[derive(Debug, Deserialize)]
-pub struct ImageMeta {
-    #[serde(rename = "image_path")]
-    pub path: PathBuf,
-
-    #[serde(rename = "score")]
-    pub score: u8,
-}
+use crate::cli::ScoreFilter;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Configuration {
@@ -21,8 +14,8 @@ pub struct Configuration {
     #[serde(rename = "meta_path")]
     pub metadata_path: Option<PathBuf>,
 
-    #[serde(rename = "score")]
-    pub score_range: Option<RangeInclusive<usize>>,
+    #[serde(rename = "scores")]
+    pub score_filters: Option<Vec<ScoreFilter>>,
 
     #[serde(rename = "width")]
     pub width_range: Option<RangeInclusive<usize>>,
@@ -47,7 +40,7 @@ impl Configuration {
         Configuration {
             root_images_dir: default_root_dir,
             metadata_path: default_meta_path,
-            score_range: Some(RangeInclusive::new(0, 10)),
+            score_filters: None,
             width_range: Some(RangeInclusive::new(0, 10_000)),
             height_range: Some(RangeInclusive::new(0, 10_000)),
         }

@@ -1,7 +1,20 @@
 use clap::{command, Parser, ValueEnum};
+use serde::{Deserialize, Serialize};
 use std::{ops::RangeInclusive, path::PathBuf};
 
-use crate::utils::parse_range;
+use crate::utils::{parse_range, parse_score_filters};
+
+// pub type ScoreFilter = (String, RangeInclusive<usize>, Option<bool>);
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ScoreFilter {
+    /// Name of the score filter
+    pub name: String,
+    /// Range of allowed values
+    pub range: RangeInclusive<usize>,
+    /// If true, images that do not specify a score values for this filter will be matched. Default is: false
+    pub allow_unscored: bool,
+}
 
 #[derive(Debug, Parser)]
 #[command(name = "kanumi")]
@@ -23,9 +36,9 @@ pub struct Cli {
     #[arg(short, long = "metadata-file")]
     pub metadata_path: Option<PathBuf>,
 
-    /// Only show images with score contained within this range
-    #[arg(short = 's', long = "score", value_parser = parse_range)]
-    pub score_range: Option<RangeInclusive<usize>>,
+    /// Only show images with scores that match a specific range
+    #[arg(short = 's', long = "scores", value_parser = parse_score_filters)]
+    pub score_filters: Option<Vec<ScoreFilter>>,
 
     /// Only show images with a width contained within this range
     #[arg(short = 'W', long = "width", value_parser = parse_range)]
