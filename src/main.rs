@@ -1,12 +1,13 @@
 use anyhow::{anyhow, Context, Result};
 use clap::Parser;
 use cli::{Cli, NodeType};
-use log::{debug, error, info};
-use model::{Configuration, ImageMeta};
+use config::Configuration;
+use log::{debug, error, info, warn};
 use walkdir::{DirEntry, WalkDir};
 
 mod cli;
-mod model;
+mod config;
+mod image_meta;
 mod utils;
 
 fn main() -> Result<()> {
@@ -74,7 +75,7 @@ fn process_only_dirs(args: &Cli, config: &Configuration) -> Result<()> {
         return Err(anyhow!("could not find directory: {}", root_dir.display()));
     }
 
-    debug!("About to run WalkDir on {}", root_dir.display());
+    debug!("about to run WalkDir on {}", root_dir.display());
 
     let dirs: Vec<_> = WalkDir::new(root_dir)
         .into_iter()
@@ -94,7 +95,7 @@ fn process_only_images(args: &Cli, config: &Configuration) -> Result<()> {
         .directory
         .clone()
         .or(config.root_images_dir.clone())
-        .context("Root directory must be specified")?;
+        .context("root directory must be specified")?;
 
     if !dir_path.exists() {
         return Err(anyhow!("could not find directory: {}", dir_path.display()));
@@ -105,8 +106,8 @@ fn process_only_images(args: &Cli, config: &Configuration) -> Result<()> {
     let metadata_path = args.metadata_path.clone().or(config.metadata_path.clone());
     info!("metadata_path: {:?}", metadata_path);
 
-    let score_range = args.score_range.clone().or(config.score_range.clone());
-    info!("score_range: {:?}", score_range);
+    let score_filters = args.score_filters.clone().or(config.score_filters.clone());
+    info!("score_filters: {:?}", score_filters);
 
     let width_range = args.width_range.clone().or(config.width_range.clone());
     info!("width_range: {:?}", width_range);
@@ -127,21 +128,33 @@ fn process_only_images(args: &Cli, config: &Configuration) -> Result<()> {
         images.retain(|img| utils::image_matches_dims(img, &width_range, &height_range));
     }
 
-    if let Some(score_range) = score_range {
+    if let Some(score_filters) = score_filters {
         if metadata_path.is_none() {
             return Err(anyhow!("No metadata file provided!"));
         }
+        info!("applying image meta score filters...");
 
-        info!("applying image meta score filter...");
         let metadata_path = metadata_path.unwrap();
-        let records = utils::create_meta_list(metadata_path)?;
+        let mut metas = utils::load_image_metas(metadata_path)?;
 
-        let filtered_records: Vec<ImageMeta> = records
-            .into_iter()
-            .filter(|record| utils::image_score_matches(record, &score_range))
-            .collect();
+        for image in images.iter() {
+            let meta = metas.iter().find(|meta| meta.path == *image);
 
-        images.retain(|img| filtered_records.iter().any(|record| record.path == *img));
+            if let Some(meta) = meta {
+                debug!("image `{}` has metadata: {:?}", image.display(), meta);
+            } else {
+                warn!(
+                    "image `{}` does not have metadata, it will be ignored when filtering",
+                    image.display()
+                );
+            }
+        }
+
+        for score_filter in score_filters.iter() {
+            metas.retain(|meta| utils::image_score_matches(meta, score_filter));
+        }
+
+        images.retain(|img| metas.iter().any(|meta| meta.path == *img));
     }
 
     for image in images.iter() {

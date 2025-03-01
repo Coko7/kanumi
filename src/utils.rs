@@ -1,22 +1,16 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use log::{debug, info, warn};
-use std::{
-    env,
-    fs::{self, File},
-    ops::RangeInclusive,
-    path::PathBuf,
-    usize,
-};
+use std::{env, fs, ops::RangeInclusive, path::PathBuf, usize};
 use xdg::BaseDirectories;
 
-use crate::model::{Configuration, ImageMeta};
+use crate::{cli::ScoreFilter, config::Configuration, image_meta::ImageMeta};
 
 pub const APP_NAME: &str = "kanumi";
 pub const CONFIG_VAR: &str = "KANUMI_CONFIG";
 
 pub fn get_config_dir() -> Result<PathBuf, anyhow::Error> {
-    if env::var(CONFIG_VAR).is_ok() {
-        let val = PathBuf::from(CONFIG_VAR);
+    if let Ok(config_var) = env::var(CONFIG_VAR) {
+        let val = PathBuf::from(config_var);
         info!(
             "get config from env: {} = {}",
             CONFIG_VAR,
@@ -69,6 +63,33 @@ pub fn load_config(path: PathBuf) -> Result<Configuration, anyhow::Error> {
     info!("parsing config toml");
     let config: Configuration = toml::from_str(&content)?;
     Ok(config)
+}
+
+pub fn parse_score_filters(input: &str) -> Result<ScoreFilter, anyhow::Error> {
+    let mut allow_unscored = false;
+    let mut input = input.to_string();
+
+    if input.ends_with('@') {
+        input = input
+            .strip_suffix('@')
+            .context("failed to strip ! suffix on score filter")?
+            .to_string();
+
+        allow_unscored = true;
+    }
+
+    let mut parts = input.split('=');
+    let key = parts.next().context("failed to get key")?.to_string();
+    let range = parts.next().context("failed to get range")?.to_string();
+    let range = parse_range(&range)?;
+
+    let score_filter = ScoreFilter {
+        name: key,
+        range,
+        allow_unscored,
+    };
+
+    Ok(score_filter)
 }
 
 pub fn parse_range(input: &str) -> Result<RangeInclusive<usize>, anyhow::Error> {
@@ -150,18 +171,22 @@ pub fn image_matches_dims(
     true
 }
 
-pub fn image_score_matches(meta: &ImageMeta, range: &RangeInclusive<usize>) -> bool {
-    usize::from(meta.score) >= *range.start() && usize::from(meta.score) <= *range.end()
-}
+pub fn image_score_matches(meta: &ImageMeta, score_filter: &ScoreFilter) -> bool {
+    let img_score = meta
+        .scores
+        .iter()
+        .find(|score| score.name == score_filter.name);
 
-pub fn create_meta_list(meta_file_path: PathBuf) -> Result<Vec<ImageMeta>> {
-    let mut reader = csv::Reader::from_reader(File::open(meta_file_path)?);
-
-    let mut records = Vec::new();
-    for entry in reader.deserialize() {
-        let record: ImageMeta = entry?;
-        records.push(record);
+    if let Some(img_score) = img_score {
+        return usize::from(img_score.value) >= *score_filter.range.start()
+            && usize::from(img_score.value) <= *score_filter.range.end();
     }
 
-    Ok(records)
+    score_filter.allow_unscored
+}
+
+pub fn load_image_metas(meta_file_path: PathBuf) -> Result<Vec<ImageMeta>> {
+    let data = fs::read_to_string(meta_file_path)?;
+    let metas: Vec<ImageMeta> = serde_json::from_str(&data)?;
+    Ok(metas)
 }
