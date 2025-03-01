@@ -106,7 +106,12 @@ pub fn parse_range(input: &str) -> Result<RangeInclusive<usize>, anyhow::Error> 
     match formatted_parts.as_slice() {
         [None, Some(end)] => Ok(0..=*end),
         [Some(start), None] => Ok(*start..=usize::MAX),
-        [Some(start), Some(end)] => Ok(*start..=*end),
+        [Some(start), Some(end)] => {
+            if start > end {
+                return Err(anyhow!("start should be <= end: {} > {}", start, end));
+            }
+            Ok(*start..=*end)
+        }
         _ => Err(anyhow!("range should have at least one boundary")),
     }
 }
