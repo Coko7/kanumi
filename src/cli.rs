@@ -1,10 +1,8 @@
-use clap::{command, Parser, ValueEnum};
+use clap::{command, Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::{ops::RangeInclusive, path::PathBuf};
 
 use crate::utils::{parse_range, parse_score_filters};
-
-// pub type ScoreFilter = (String, RangeInclusive<usize>, Option<bool>);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ScoreFilter {
@@ -13,53 +11,94 @@ pub struct ScoreFilter {
     /// Range of allowed values
     pub range: RangeInclusive<usize>,
     /// If true, images that do not specify a score values for this filter will be matched. Default is: false
+    #[serde(default)]
     pub allow_unscored: bool,
 }
 
 #[derive(Debug, Parser)]
 #[command(name = "kanumi")]
-#[command(about = "Select / filter image collections", long_about = None)]
+#[command(about = "Query / filter collections of images", long_about = None)]
 pub struct Cli {
-    /// Root directory to use to search for collection of images
-    pub directory: Option<PathBuf>,
-
-    /// Restrict output to specified node type
-    #[arg(
-        short = 't',
-        long = "type",
-        default_value_t = NodeType::Image,
-        value_enum
-    )]
-    pub node_type: NodeType,
-
-    /// Path to the CSV file containing individual image scores
-    #[arg(short, long = "metadata-file")]
-    pub metadata_path: Option<PathBuf>,
-
-    /// Only show images with scores that match a specific range
-    #[arg(short = 's', long = "scores", value_parser = parse_score_filters)]
-    pub score_filters: Option<Vec<ScoreFilter>>,
-
-    /// Only show images with a width contained within this range
-    #[arg(short = 'W', long = "width", value_parser = parse_range)]
-    pub width_range: Option<RangeInclusive<usize>>,
-
-    /// Only show images with a height contained within this range
-    #[arg(short = 'H', long = "height", value_parser = parse_range)]
-    pub height_range: Option<RangeInclusive<usize>>,
-
-    /// Generate default configuration
-    #[arg(short = 'c', long = "conf-gen", exclusive = true)]
-    pub generate_config: bool,
+    #[command(subcommand)]
+    pub command: Commands,
 
     #[command(flatten)]
     pub verbose: clap_verbosity_flag::Verbosity,
 }
 
-#[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
-pub enum NodeType {
-    #[value(name = "directory", alias = "dir", alias = "d")]
-    Directory,
-    #[value(name = "image", alias = "img", alias = "i")]
-    Image,
+#[derive(Debug, Subcommand)]
+pub enum Commands {
+    /// View and manage configuration
+    #[command(name = "config", alias = "cfg")]
+    Configuration {
+        #[command(subcommand)]
+        command: ConfigurationCommands,
+    },
+    /// View and manage metadata
+    #[command(name = "metadata", alias = "meta")]
+    Metadata {
+        #[command(subcommand)]
+        command: MetadataCommands,
+    },
+    /// Filter images based on selectors
+    Filter {
+        /// Filter based on score range
+        #[arg(short = 's', long = "scores", value_parser = parse_score_filters)]
+        score_filters: Option<Vec<ScoreFilter>>,
+
+        /// Filter based on width range
+        #[arg(short = 'W', long = "width", value_parser = parse_range)]
+        width_range: Option<RangeInclusive<usize>>,
+
+        /// Filter based on height range
+        #[arg(short = 'H', long = "height", value_parser = parse_range)]
+        height_range: Option<RangeInclusive<usize>>,
+
+        /// Filter based on parent directory
+        #[arg(short = 'd', long = "directory")]
+        base_directory: Option<PathBuf>,
+
+        /// Output in JSON
+        #[arg(short = 'j', long = "json")]
+        use_json_format: bool,
+    },
+    /// Query the matching metadata for a given image path
+    Query { image: PathBuf },
+    /// Scan the entire images directory to find missing data
+    Scan {
+        /// Output in JSON
+        #[arg(short = 'j', long = "json")]
+        use_json_format: bool,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum ConfigurationCommands {
+    /// Print configuration and exit
+    Show,
+    /// Generate a default configuration file
+    #[command(visible_alias = "gen")]
+    Generate {
+        /// Only print generated configuration. Does not write to file system
+        #[arg(short, long)]
+        dry_run: bool,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum MetadataCommands {
+    /// Print metadatas and exit
+    Show,
+    /// Generate default metadata for a given image
+    #[command(visible_alias = "gen")]
+    Generate {
+        image: PathBuf,
+
+        /// Only print generated configuration. Does not write to file system
+        #[arg(short, long)]
+        dry_run: bool,
+    },
+    // /// Generate metadata file based on configured images directory
+    // #[command(visible_alias = "gen-meta")]
+    // GenerateMetadata { image: PathBuf },
 }

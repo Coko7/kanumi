@@ -33,7 +33,7 @@ impl Configuration {
             if let Some(picture_dir) = user_dirs.picture_dir() {
                 info!("found user pictures dir: {}", picture_dir.display());
                 default_root_dir = Some(picture_dir.to_path_buf());
-                default_meta_path = Some(picture_dir.join("metadata.csv"));
+                default_meta_path = Some(picture_dir.join("metadata.json"));
             }
         }
 

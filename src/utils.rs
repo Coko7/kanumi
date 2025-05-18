@@ -1,6 +1,13 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use log::{debug, info, warn};
-use std::{env, fs, ops::RangeInclusive, path::PathBuf, usize};
+use std::{
+    env,
+    fs::{self, File},
+    io::Read,
+    ops::RangeInclusive,
+    path::PathBuf,
+};
+use walkdir::{DirEntry, WalkDir};
 use xdg::BaseDirectories;
 
 use crate::{cli::ScoreFilter, config::Configuration, image_meta::ImageMeta};
@@ -73,7 +80,7 @@ pub fn parse_score_filters(input: &str) -> Result<ScoreFilter, anyhow::Error> {
         input = input
             .strip_suffix('@')
             .context("failed to strip ! suffix on score filter")?
-            .to_string();
+            .to_owned();
 
         allow_unscored = true;
     }
@@ -98,18 +105,12 @@ pub fn parse_range(input: &str) -> Result<RangeInclusive<usize>, anyhow::Error> 
     }
 
     if !input.contains("..") {
-        return Err(anyhow!(
-            "expected number N or range (N..O) but got: `{}`",
-            input
-        ));
+        bail!("expected number N or range (N..O) but got: `{}`", input);
     }
 
     let parts: Vec<&str> = input.split("..").collect();
     if parts.len() != 2 {
-        return Err(anyhow!(
-            "invalid range format, expected X..Y but got: `{}`",
-            input
-        ));
+        bail!("invalid range format, expected X..Y but got: `{}`", input);
     }
 
     let mut formatted_parts = Vec::new();
@@ -119,7 +120,7 @@ pub fn parse_range(input: &str) -> Result<RangeInclusive<usize>, anyhow::Error> 
         } else {
             match part.parse::<usize>() {
                 Ok(num) => formatted_parts.push(Some(num)),
-                Err(e) => return Err(anyhow!("failed to parse number: `{}`", e)),
+                Err(e) => bail!("failed to parse number: `{}`", e),
             }
         }
     }
@@ -129,12 +130,16 @@ pub fn parse_range(input: &str) -> Result<RangeInclusive<usize>, anyhow::Error> 
         [Some(start), None] => Ok(*start..=usize::MAX),
         [Some(start), Some(end)] => {
             if start > end {
-                return Err(anyhow!("start should be <= end: {} > {}", start, end));
+                bail!("start should be <= end: {} > {}", start, end);
             }
             Ok(*start..=*end)
         }
         _ => Err(anyhow!("range should have at least one boundary")),
     }
+}
+
+pub fn get_image_dims(image: &PathBuf) -> Result<(u32, u32)> {
+    Ok(image::image_dimensions(image)?)
 }
 
 pub fn image_matches_dims(
@@ -189,4 +194,52 @@ pub fn load_image_metas(meta_file_path: PathBuf) -> Result<Vec<ImageMeta>> {
     let data = fs::read_to_string(meta_file_path)?;
     let metas: Vec<ImageMeta> = serde_json::from_str(&data)?;
     Ok(metas)
+}
+
+pub fn get_all_images(base_directory: &PathBuf) -> Result<Vec<PathBuf>> {
+    Ok(WalkDir::new(base_directory)
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter(is_image_file)
+        .map(|entry| entry.path().to_owned())
+        .collect())
+}
+
+fn is_image_file(entry: &DirEntry) -> bool {
+    if let Some(file_name) = entry.file_name().to_str() {
+        return file_name.to_lowercase().ends_with(".gif")
+            || file_name.to_lowercase().ends_with(".jpeg")
+            || file_name.to_lowercase().ends_with(".jpg")
+            || file_name.to_lowercase().ends_with(".png")
+            || file_name.to_lowercase().ends_with(".webp");
+    }
+
+    false
+}
+
+pub fn compute_blake3_hash(file: &PathBuf) -> Result<String> {
+    let mut file = File::open(file)?;
+    let mut hasher = blake3::Hasher::new();
+    let mut buffer = [0; 1024];
+
+    loop {
+        let bytes_read = file.read(&mut buffer)?;
+        if bytes_read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..bytes_read]);
+    }
+
+    let hash = hasher.finalize();
+    Ok(hash.to_string())
+}
+
+pub fn create_banner(text: &str) -> String {
+    let center_part = format!("# {text} #\n");
+
+    let inside_len = center_part.len() - 3;
+    let outline = format!("#{}#\n", "#".repeat(inside_len));
+    let empty = format!("#{}#\n", " ".repeat(inside_len));
+
+    format!("{outline}{empty}{center_part}{empty}{outline}")
 }
