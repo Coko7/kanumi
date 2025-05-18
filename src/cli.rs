@@ -17,7 +17,7 @@ pub struct ScoreFilter {
 
 #[derive(Debug, Parser)]
 #[command(name = "kanumi")]
-#[command(about = "Query / filter collections of images", long_about = None)]
+#[command(about = "Manage collection of images from your terminal", long_about = None)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,

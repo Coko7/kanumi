@@ -1,9 +1,9 @@
 [package]
-name = "kanumi-rs"
+name = "kanumi"
 version = "0.1.0"
 authors = ["Coko <91132775+Coko7@users.noreply.github.com>"]
 edition = "2021"
-description = "A cli to manager image collections"
+description = "A cli to manage collections of images"
 
 [dependencies]
 anyhow = "1.0.93"

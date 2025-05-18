@@ -284,12 +284,6 @@ fn filter_images_using_metadata(
     if let Some(base_directory) = base_directory {
         info!("filter using base_directory: {:?}", base_directory);
         metas.retain(|meta| {
-            assert!(
-                meta.path.is_file(),
-                "{} should be an image!",
-                meta.path.display()
-            );
-
             let base_directory = if base_directory.is_absolute() {
                 base_directory.clone()
             } else {
