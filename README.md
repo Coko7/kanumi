@@ -94,8 +94,9 @@ Options:
   -W, --width <WIDTH_RANGE>         Filter based on width range
   -H, --height <HEIGHT_RANGE>       Filter based on height range
   -d, --directory <BASE_DIRECTORY>  Filter based on parent directory
-  -j, --json                        Output in JSON
+  -i, --ignore                      Ignore selectors preset from config
   -v, --verbose...                  Increase logging verbosity
+  -j, --json                        Output in JSON
   -q, --quiet...                    Decrease logging verbosity
   -h, --help                        Print help
 ```

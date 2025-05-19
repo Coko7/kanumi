@@ -61,14 +61,23 @@ fn process_args(args: Cli, config: Configuration) -> Result<()> {
             width_range,
             height_range,
             base_directory,
+            ignore_config,
             use_json_format,
         } => {
-            let score_filters = score_filters.or(config.score_filters);
-            let width_range = width_range.or(config.width_range);
-            let height_range = height_range.or(config.height_range);
+            let mut score_filters = score_filters;
+            let mut width_range = width_range;
+            let mut height_range = height_range;
 
-            warn!("right now, metadata file is required to filter images");
-            filter_images_using_metadata(
+            if !ignore_config {
+                score_filters = score_filters.or(config.score_filters);
+                width_range = width_range.or(config.width_range);
+                height_range = height_range.or(config.height_range);
+            } else {
+                info!("ignore_config flag has been added");
+            }
+
+            warn!("right now, metadata file is required to list images");
+            list_images_using_metadata(
                 &root_images_dir,
                 config.metadata_path,
                 score_filters,
@@ -268,7 +277,7 @@ fn scan_images(
     Ok(())
 }
 
-fn filter_images_using_metadata(
+fn list_images_using_metadata(
     root_images_dir: &PathBuf,
     metadata_path: Option<PathBuf>,
     score_filters: Option<Vec<ScoreFilter>>,

@@ -59,6 +59,10 @@ pub enum Commands {
         #[arg(short = 'd', long = "directory")]
         base_directory: Option<PathBuf>,
 
+        /// Ignore selectors preset from config
+        #[arg(short = 'i', long = "ignore")]
+        ignore_config: bool,
+
         /// Output in JSON
         #[arg(short = 'j', long = "json")]
         use_json_format: bool,
