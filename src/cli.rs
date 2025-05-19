@@ -40,8 +40,9 @@ pub enum Commands {
         #[command(subcommand)]
         command: MetadataCommands,
     },
-    /// Filter images based on selectors
-    Filter {
+    /// List images that match given selectors
+    #[command(name = "list", alias = "ls")]
+    List {
         /// Filter based on score range
         #[arg(short = 's', long = "scores", value_parser = parse_score_filters)]
         score_filters: Option<Vec<ScoreFilter>>,
@@ -62,8 +63,6 @@ pub enum Commands {
         #[arg(short = 'j', long = "json")]
         use_json_format: bool,
     },
-    /// Query the matching metadata for a given image path
-    Query { image: PathBuf },
     /// Scan the entire images directory to find missing data
     Scan {
         /// Output in JSON
@@ -87,8 +86,10 @@ pub enum ConfigurationCommands {
 
 #[derive(Debug, Subcommand)]
 pub enum MetadataCommands {
-    /// Print metadatas and exit
+    /// Print all metadatas and exit
     Show,
+    /// Query the matching metadata for a given image path
+    Query { image: PathBuf },
     /// Generate default metadata for a given image
     #[command(visible_alias = "gen")]
     Generate {

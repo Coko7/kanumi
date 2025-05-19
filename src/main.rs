@@ -56,7 +56,7 @@ fn process_args(args: Cli, config: Configuration) -> Result<()> {
 
     info!("metadata_path: {:?}", config.metadata_path);
     match args.command {
-        cli::Commands::Filter {
+        cli::Commands::List {
             score_filters,
             width_range,
             height_range,
@@ -77,29 +77,6 @@ fn process_args(args: Cli, config: Configuration) -> Result<()> {
                 base_directory,
                 use_json_format,
             )
-        }
-        cli::Commands::Query { image } => {
-            if !image.exists() {
-                bail!("no such image: {}", image.display());
-            }
-
-            if !image.is_file() {
-                bail!("the following is not a valid image: {}", image.display());
-            }
-
-            let hash = utils::compute_blake3_hash(&image)?;
-            let metas = utils::load_image_metas(config.metadata_path.unwrap())?;
-
-            let result = metas.iter().find(|meta| meta.id == hash);
-            match result {
-                Some(meta) => {
-                    println!("{:?}", meta);
-                    Ok(())
-                }
-                None => {
-                    bail!("no matching metadata for image: {}", image.display())
-                }
-            }
         }
         cli::Commands::Scan { use_json_format } => {
             scan_images(&root_images_dir, config.metadata_path, use_json_format)
@@ -123,6 +100,36 @@ fn process_args(args: Cli, config: Configuration) -> Result<()> {
             }
         },
         cli::Commands::Metadata { command } => match command {
+            cli::MetadataCommands::Show => {
+                let metas = utils::load_image_metas(config.metadata_path.unwrap())?;
+                let metas_json = serde_json::to_string(&metas)?;
+                println!("{metas_json}");
+                Ok(())
+            }
+            cli::MetadataCommands::Query { image } => {
+                if !image.exists() {
+                    bail!("no such image: {}", image.display());
+                }
+
+                if !image.is_file() {
+                    bail!("the following is not a valid image: {}", image.display());
+                }
+
+                let hash = utils::compute_blake3_hash(&image)?;
+                let metas = utils::load_image_metas(config.metadata_path.unwrap())?;
+
+                let result = metas.iter().find(|meta| meta.id == hash);
+                match result {
+                    Some(meta) => {
+                        let meta_json = serde_json::to_string(meta)?;
+                        println!("{meta_json}");
+                        Ok(())
+                    }
+                    None => {
+                        bail!("no matching metadata for image: {}", image.display())
+                    }
+                }
+            }
             cli::MetadataCommands::Generate { image, dry_run } => {
                 info!("generating default metadata...");
                 let meta = ImageMeta::create_from_image(&image)?;
@@ -141,7 +148,6 @@ fn process_args(args: Cli, config: Configuration) -> Result<()> {
                 // println!("{}", json);
                 // Ok(())
             }
-            cli::MetadataCommands::Show => todo!(),
         },
     }
 }
@@ -204,7 +210,7 @@ fn scan_images(
             moved_images.insert(image_path, meta);
             metaless_images.retain(|hash, _| *hash != meta.id);
         } else {
-            error!("cannot find image: {}", meta.path.display());
+            warn!("cannot find image: {}", meta.path.display());
             deleted_images.push(meta);
         }
     }
