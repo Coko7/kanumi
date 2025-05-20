@@ -1,19 +1,10 @@
 use clap::{command, Parser, Subcommand};
-use serde::{Deserialize, Serialize};
 use std::{ffi::OsString, ops::RangeInclusive, path::PathBuf};
 
-use crate::utils::common::{parse_range, parse_score_filters};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ScoreFilter {
-    /// Name of the score filter
-    pub name: String,
-    /// Range of allowed values
-    pub range: RangeInclusive<usize>,
-    /// If true, images that do not specify a score values for this filter will be matched. Default is: false
-    #[serde(default)]
-    pub allow_unscored: bool,
-}
+use crate::{
+    models::ScoreFilter,
+    utils::common::{parse_range, parse_score_filters},
+};
 
 #[derive(Debug, Parser)]
 #[command(name = "kanumi")]
@@ -94,15 +85,26 @@ pub enum MetadataCommands {
     Show,
     /// Get the metadata associated to a given image file
     Get {
+        /// Path of the image file
         image: PathBuf,
     },
+    /// Search for metadata using a search string
+    Search {
+        /// The search query
+        query: OsString,
+    },
+    /// Update the metadata for an image
     Edit {
+        /// Path of the image file
         image: PathBuf,
+
+        /// Updated metadata string in JSON format
         metadata: OsString,
     },
     /// Generate default metadata for a given image
     #[command(visible_alias = "gen")]
     Generate {
+        /// Path of the image file
         image: PathBuf,
 
         /// Only print generated configuration. Does not write to file system

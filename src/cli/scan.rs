@@ -3,7 +3,7 @@ use log::{debug, info, warn};
 use serde_json::json;
 use std::{collections::HashMap, path::PathBuf};
 
-use crate::{image_meta::ImageMeta, utils};
+use crate::{models::ImageMeta, utils};
 
 pub fn scan_images(
     base_directory: &PathBuf,

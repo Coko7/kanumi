@@ -4,7 +4,7 @@ use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::{ops::RangeInclusive, path::PathBuf};
 
-use crate::cli::ScoreFilter;
+use super::ScoreFilter;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Configuration {

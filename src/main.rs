@@ -1,14 +1,12 @@
-use anyhow::{bail, ensure, Context, Result};
+use anyhow::{ensure, Context, Result};
 use clap::Parser;
+use cli::{Cli, Commands};
 use log::{error, info, warn};
 
-use cli::Cli;
-use config::Configuration;
-use image_meta::ImageMeta;
+use models::Configuration;
 
 mod cli;
-mod config;
-mod image_meta;
+mod models;
 mod utils;
 
 fn main() -> Result<()> {
@@ -53,7 +51,7 @@ fn process_args(args: Cli, config: Configuration) -> Result<()> {
 
     info!("metadata_path: {:?}", config.metadata_path);
     match args.command {
-        cli::Commands::List {
+        Commands::List {
             score_filters,
             width_range,
             height_range,
@@ -74,7 +72,7 @@ fn process_args(args: Cli, config: Configuration) -> Result<()> {
             }
 
             warn!("right now, metadata file is required to list images");
-            utils::list::list_images_using_metadata(
+            cli::list_images_using_metadata(
                 &root_images_dir,
                 config.metadata_path,
                 score_filters,
@@ -85,79 +83,9 @@ fn process_args(args: Cli, config: Configuration) -> Result<()> {
             )
         }
         cli::Commands::Scan { use_json_format } => {
-            utils::scan::scan_images(&root_images_dir, config.metadata_path, use_json_format)
+            cli::scan_images(&root_images_dir, config.metadata_path, use_json_format)
         }
-        cli::Commands::Configuration { command } => match command {
-            cli::ConfigurationCommands::Show => {
-                let config_path = utils::common::get_config_file()?;
-                let banner = utils::common::create_banner(&config_path.display().to_string());
-                println!("{banner}");
-
-                let toml_config = config.to_toml_str()?;
-                println!("{toml_config}");
-                Ok(())
-            }
-            cli::ConfigurationCommands::Generate { dry_run: _ } => {
-                info!("generating default config...");
-                let default_config = Configuration::create_default();
-                let toml = default_config.to_toml_str()?;
-                print!("{}", toml);
-                Ok(())
-            }
-        },
-        cli::Commands::Metadata { command } => match command {
-            cli::MetadataCommands::Show => {
-                let metas = utils::common::load_image_metas(config.metadata_path.unwrap())?;
-                let metas_json = serde_json::to_string(&metas)?;
-                println!("{metas_json}");
-                Ok(())
-            }
-            cli::MetadataCommands::Get { image } => {
-                if !image.exists() {
-                    bail!("no such image: {}", image.display());
-                }
-
-                if !image.is_file() {
-                    bail!("the following is not a valid image: {}", image.display());
-                }
-
-                let hash = utils::common::compute_blake3_hash(&image)?;
-                let metas = utils::common::load_image_metas(config.metadata_path.unwrap())?;
-
-                let result = metas.iter().find(|meta| meta.id == hash);
-                match result {
-                    Some(meta) => {
-                        let meta_json = serde_json::to_string(meta)?;
-                        println!("{meta_json}");
-                        Ok(())
-                    }
-                    None => {
-                        bail!("no matching metadata for image: {}", image.display())
-                    }
-                }
-            }
-            cli::MetadataCommands::Generate { image, dry_run: _ } => {
-                info!("generating default metadata...");
-                let meta = ImageMeta::create_from_image(&image)?;
-                let json = serde_json::to_string(&meta)?;
-                println!("{}", json);
-                Ok(())
-
-                // let images = get_all_images(&base_dir)?;
-                // let mut metadatas = vec![];
-                // for image in images.iter() {
-                //     let meta = ImageMeta::create_from_image(image)?;
-                //     metadatas.push(meta);
-                // }
-                //
-                // let json = serde_json::to_string(&metadatas)?;
-                // println!("{}", json);
-                // Ok(())
-            }
-            cli::MetadataCommands::Edit {
-                image: _,
-                metadata: _,
-            } => todo!(),
-        },
+        cli::Commands::Configuration { command } => cli::handle_config_command(command, &config),
+        cli::Commands::Metadata { command } => cli::handle_metadata_command(command, &config),
     }
 }

@@ -5,12 +5,12 @@ use std::{
     fs::{self, File},
     io::Read,
     ops::RangeInclusive,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 use walkdir::{DirEntry, WalkDir};
 use xdg::BaseDirectories;
 
-use crate::{cli::ScoreFilter, config::Configuration, image_meta::ImageMeta};
+use crate::models::{Configuration, ImageMeta, ScoreFilter};
 
 pub const APP_NAME: &str = "kanumi";
 pub const CONFIG_VAR: &str = "KANUMI_CONFIG";
@@ -217,7 +217,7 @@ fn is_image_file(entry: &DirEntry) -> bool {
     false
 }
 
-pub fn compute_blake3_hash(file: &PathBuf) -> Result<String> {
+pub fn compute_blake3_hash(file: &Path) -> Result<String> {
     let mut file = File::open(file)?;
     let mut hasher = blake3::Hasher::new();
     let mut buffer = [0; 1024];

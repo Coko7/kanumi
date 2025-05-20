@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{cli::ScoreFilter, utils};
+use crate::{models::ScoreFilter, utils};
 
 pub fn list_images_using_metadata(
     root_images_dir: &Path,
