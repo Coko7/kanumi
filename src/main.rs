@@ -1,13 +1,10 @@
 use anyhow::{bail, ensure, Context, Result};
 use clap::Parser;
-use log::{debug, error, info, warn};
-use serde_json::json;
-use std::{collections::HashMap, ops::RangeInclusive, path::PathBuf};
+use log::{error, info, warn};
 
-use cli::{Cli, ScoreFilter};
+use cli::Cli;
 use config::Configuration;
 use image_meta::ImageMeta;
-use utils::get_all_images;
 
 mod cli;
 mod config;
@@ -21,14 +18,14 @@ fn main() -> Result<()> {
         .init();
 
     info!("getting config file");
-    let config_file = utils::get_config_file()?;
+    let config_file = utils::common::get_config_file()?;
     if !config_file.exists() {
-        utils::create_config_file()?;
+        utils::common::create_config_file()?;
         info!("config file created");
     }
 
     info!("loading config");
-    let config = utils::load_config(config_file)?;
+    let config = utils::common::load_config(config_file)?;
 
     info!("process cli args");
     match process_args(args, config) {
@@ -77,7 +74,7 @@ fn process_args(args: Cli, config: Configuration) -> Result<()> {
             }
 
             warn!("right now, metadata file is required to list images");
-            list_images_using_metadata(
+            utils::list::list_images_using_metadata(
                 &root_images_dir,
                 config.metadata_path,
                 score_filters,
@@ -88,19 +85,19 @@ fn process_args(args: Cli, config: Configuration) -> Result<()> {
             )
         }
         cli::Commands::Scan { use_json_format } => {
-            scan_images(&root_images_dir, config.metadata_path, use_json_format)
+            utils::scan::scan_images(&root_images_dir, config.metadata_path, use_json_format)
         }
         cli::Commands::Configuration { command } => match command {
             cli::ConfigurationCommands::Show => {
-                let config_path = utils::get_config_file()?;
-                let banner = utils::create_banner(&config_path.display().to_string());
+                let config_path = utils::common::get_config_file()?;
+                let banner = utils::common::create_banner(&config_path.display().to_string());
                 println!("{banner}");
 
                 let toml_config = config.to_toml_str()?;
                 println!("{toml_config}");
                 Ok(())
             }
-            cli::ConfigurationCommands::Generate { dry_run } => {
+            cli::ConfigurationCommands::Generate { dry_run: _ } => {
                 info!("generating default config...");
                 let default_config = Configuration::create_default();
                 let toml = default_config.to_toml_str()?;
@@ -110,12 +107,12 @@ fn process_args(args: Cli, config: Configuration) -> Result<()> {
         },
         cli::Commands::Metadata { command } => match command {
             cli::MetadataCommands::Show => {
-                let metas = utils::load_image_metas(config.metadata_path.unwrap())?;
+                let metas = utils::common::load_image_metas(config.metadata_path.unwrap())?;
                 let metas_json = serde_json::to_string(&metas)?;
                 println!("{metas_json}");
                 Ok(())
             }
-            cli::MetadataCommands::Query { image } => {
+            cli::MetadataCommands::Get { image } => {
                 if !image.exists() {
                     bail!("no such image: {}", image.display());
                 }
@@ -124,8 +121,8 @@ fn process_args(args: Cli, config: Configuration) -> Result<()> {
                     bail!("the following is not a valid image: {}", image.display());
                 }
 
-                let hash = utils::compute_blake3_hash(&image)?;
-                let metas = utils::load_image_metas(config.metadata_path.unwrap())?;
+                let hash = utils::common::compute_blake3_hash(&image)?;
+                let metas = utils::common::load_image_metas(config.metadata_path.unwrap())?;
 
                 let result = metas.iter().find(|meta| meta.id == hash);
                 match result {
@@ -139,7 +136,7 @@ fn process_args(args: Cli, config: Configuration) -> Result<()> {
                     }
                 }
             }
-            cli::MetadataCommands::Generate { image, dry_run } => {
+            cli::MetadataCommands::Generate { image, dry_run: _ } => {
                 info!("generating default metadata...");
                 let meta = ImageMeta::create_from_image(&image)?;
                 let json = serde_json::to_string(&meta)?;
@@ -157,211 +154,10 @@ fn process_args(args: Cli, config: Configuration) -> Result<()> {
                 // println!("{}", json);
                 // Ok(())
             }
+            cli::MetadataCommands::Edit {
+                image: _,
+                metadata: _,
+            } => todo!(),
         },
     }
-}
-
-fn scan_images(
-    base_directory: &PathBuf,
-    metadata_path: Option<PathBuf>,
-    use_json_format: bool,
-) -> Result<()> {
-    if metadata_path.is_none() {
-        bail!("No metadata file provided!");
-    }
-
-    info!("scanning for missing metadata or images...");
-
-    info!("about to run WalkDir on {}", base_directory.display());
-    let all_metas = utils::load_image_metas(metadata_path.unwrap())?;
-
-    let mut mappings: HashMap<&PathBuf, Option<ImageMeta>> = HashMap::new();
-    let images = get_all_images(&base_directory)?;
-    for image_path in images.iter() {
-        let matching_meta = all_metas
-            .iter()
-            .find(|meta| meta.path == *image_path)
-            .cloned();
-
-        mappings.insert(image_path, matching_meta);
-    }
-
-    debug!("created {} img:Option<meta> mappings", mappings.len());
-
-    let mut metaless_images: HashMap<String, &PathBuf> = HashMap::new();
-    for (img_path, metadata) in mappings.iter() {
-        if metadata.is_none() {
-            let hash = utils::compute_blake3_hash(img_path)?;
-            metaless_images.insert(hash, img_path);
-        }
-    }
-
-    debug!(
-        "computed hash for {} images that had no metadata",
-        metaless_images.len()
-    );
-
-    let mut moved_images: HashMap<&PathBuf, &ImageMeta> = HashMap::new();
-    let mut deleted_images: Vec<&ImageMeta> = vec![];
-
-    for meta in all_metas.iter() {
-        if meta.path.exists() {
-            continue;
-        }
-
-        warn!("image path invalid for: {meta:?}");
-        if let Some(image_path) = metaless_images.get(&meta.id) {
-            warn!(
-                "{} seems to have been moved to: {}",
-                meta.path.display(),
-                image_path.display()
-            );
-            moved_images.insert(image_path, meta);
-            metaless_images.retain(|hash, _| *hash != meta.id);
-        } else {
-            warn!("cannot find image: {}", meta.path.display());
-            deleted_images.push(meta);
-        }
-    }
-
-    let new_images = metaless_images;
-
-    match use_json_format {
-        true => {
-            let new_images: Vec<_> = new_images.values().collect();
-            let moved_images: Vec<_> = moved_images
-                .iter()
-                .map(|(new_path, meta)| {
-                    json!({
-                        "metadata": meta,
-                        "new_path": new_path
-                    })
-                })
-                .collect();
-
-            let summary = json!({
-                "new": new_images,
-                "moved": moved_images,
-                "deleted": deleted_images,
-            });
-            let summary_json = serde_json::to_string(&summary)?;
-            println!("{summary_json}");
-        }
-        false => {
-            if !new_images.is_empty() {
-                println!("new:");
-                for (_, img_path) in new_images.iter() {
-                    println!("- {}", img_path.display());
-                }
-                println!();
-            }
-
-            if !moved_images.is_empty() {
-                println!("moved:");
-                for (new_path, metadata) in moved_images.iter() {
-                    println!("- {} -> {}", metadata.path.display(), new_path.display())
-                }
-                println!();
-            }
-
-            if !deleted_images.is_empty() {
-                println!("deleted:");
-                for metadata in deleted_images.iter() {
-                    println!("- {}", metadata.path.display());
-                }
-                println!();
-            }
-        }
-    }
-
-    Ok(())
-}
-
-fn list_images_using_metadata(
-    root_images_dir: &PathBuf,
-    metadata_path: Option<PathBuf>,
-    score_filters: Option<Vec<ScoreFilter>>,
-    width_range: Option<RangeInclusive<usize>>,
-    height_range: Option<RangeInclusive<usize>>,
-    base_directory: Option<PathBuf>,
-    use_json_format: bool,
-) -> Result<()> {
-    if metadata_path.is_none() {
-        bail!("No metadata file provided!");
-    }
-
-    let mut metas = utils::load_image_metas(metadata_path.unwrap())?;
-
-    info!("score_filters: {:?}", score_filters);
-    info!("width_range: {:?}", width_range);
-    info!("height_range: {:?}", height_range);
-
-    if let Some(base_directory) = base_directory {
-        info!("filter using base_directory: {:?}", base_directory);
-        metas.retain(|meta| {
-            let base_directory = if base_directory.is_absolute() {
-                base_directory.clone()
-            } else {
-                root_images_dir.join(&base_directory)
-            };
-
-            if let Some(img_base_dir) = meta.path.parent() {
-                img_base_dir == &base_directory
-            } else {
-                false
-            }
-        });
-    }
-
-    if width_range.is_some() || height_range.is_some() {
-        info!("applying dimensions filter...");
-        metas.retain(|meta| utils::image_matches_dims(&meta.path, &width_range, &height_range));
-    }
-
-    if let Some(score_filters) = score_filters {
-        info!("applying image meta score filters...");
-
-        for score_filter in score_filters.iter() {
-            metas.retain(|meta| utils::image_score_matches(meta, score_filter));
-        }
-    }
-
-    match use_json_format {
-        true => {
-            info!("outputting as json");
-            let metas_json = serde_json::to_string(&metas)?;
-            println!("{}", metas_json);
-        }
-        false => {
-            info!("outputting image paths only");
-            for meta in metas.iter() {
-                println!("{}", meta.path.display());
-            }
-        }
-    };
-
-    Ok(())
-}
-
-fn filter_images_without_using_metadata(
-    base_directory: PathBuf,
-    width_range: Option<RangeInclusive<usize>>,
-    height_range: Option<RangeInclusive<usize>>,
-) -> Result<()> {
-    info!("width_range: {:?}", width_range);
-    info!("height_range: {:?}", height_range);
-
-    info!("about to run WalkDir on {}", base_directory.display());
-    let mut images = get_all_images(&base_directory)?;
-
-    if width_range.is_some() || height_range.is_some() {
-        info!("applying dimensions filter...");
-        images.retain(|img| utils::image_matches_dims(img, &width_range, &height_range));
-    }
-
-    for image in images.iter() {
-        println!("{}", image.display());
-    }
-
-    todo!("not fully supported yet!")
 }

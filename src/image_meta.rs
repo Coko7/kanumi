@@ -48,14 +48,14 @@ pub struct ImageMeta {
 
 impl ImageMeta {
     pub fn create_from_image(image: &PathBuf) -> Result<ImageMeta, anyhow::Error> {
-        let id = utils::compute_blake3_hash(image)?;
+        let id = utils::common::compute_blake3_hash(image)?;
         let filename = image
             .file_name()
             .context("image file should have a filename")?
             .to_string_lossy()
             .into_owned();
 
-        let dimensions = utils::get_image_dims(image)?;
+        let dimensions = utils::common::get_image_dims(image)?;
 
         let meta = ImageMeta {
             id,

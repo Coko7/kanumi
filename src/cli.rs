@@ -1,8 +1,8 @@
 use clap::{command, Parser, Subcommand};
 use serde::{Deserialize, Serialize};
-use std::{ops::RangeInclusive, path::PathBuf};
+use std::{ffi::OsString, ops::RangeInclusive, path::PathBuf};
 
-use crate::utils::{parse_range, parse_score_filters};
+use crate::utils::common::{parse_range, parse_score_filters};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ScoreFilter {
@@ -92,8 +92,14 @@ pub enum ConfigurationCommands {
 pub enum MetadataCommands {
     /// Print all metadatas and exit
     Show,
-    /// Query the matching metadata for a given image path
-    Query { image: PathBuf },
+    /// Get the metadata associated to a given image file
+    Get {
+        image: PathBuf,
+    },
+    Edit {
+        image: PathBuf,
+        metadata: OsString,
+    },
     /// Generate default metadata for a given image
     #[command(visible_alias = "gen")]
     Generate {
