@@ -71,7 +71,7 @@ Usage: kanumi metadata [OPTIONS] <COMMAND>
 
 Commands:
   show      Print all metadatas and exit
-  query     Query the matching metadata for a given image path
+  get       Get the metadata associated to a given image file
   generate  Generate default metadata for a given image [aliases: gen]
   help      Print this message or the help of the given subcommand(s)
 
