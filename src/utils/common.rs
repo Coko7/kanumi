@@ -15,7 +15,7 @@ use crate::models::{Configuration, ImageMeta, ScoreFilter};
 pub const APP_NAME: &str = "kanumi";
 pub const CONFIG_VAR: &str = "KANUMI_CONFIG";
 
-pub fn get_config_dir() -> Result<PathBuf, anyhow::Error> {
+pub fn get_config_dir() -> Result<PathBuf> {
     if let Ok(config_var) = env::var(CONFIG_VAR) {
         let val = PathBuf::from(config_var);
         info!(
@@ -45,11 +45,11 @@ pub fn get_config_dir() -> Result<PathBuf, anyhow::Error> {
     Err(anyhow!("could not get config directory"))
 }
 
-pub fn get_config_file() -> Result<PathBuf, anyhow::Error> {
+pub fn get_config_file() -> Result<PathBuf> {
     Ok(get_config_dir()?.join("config.toml"))
 }
 
-pub fn create_config_file() -> Result<(), anyhow::Error> {
+pub fn create_config_file() -> Result<()> {
     let file_path = get_config_file()?;
     info!("create config file: `{}`", file_path.to_string_lossy());
 
@@ -64,7 +64,7 @@ pub fn create_config_file() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-pub fn load_config(path: PathBuf) -> Result<Configuration, anyhow::Error> {
+pub fn load_config(path: PathBuf) -> Result<Configuration> {
     let content = fs::read_to_string(path)?;
 
     info!("parsing config toml");
@@ -72,7 +72,7 @@ pub fn load_config(path: PathBuf) -> Result<Configuration, anyhow::Error> {
     Ok(config)
 }
 
-pub fn parse_score_filters(input: &str) -> Result<ScoreFilter, anyhow::Error> {
+pub fn parse_score_filters(input: &str) -> Result<ScoreFilter> {
     let mut allow_unscored = false;
     let mut input = input.to_string();
 
@@ -99,7 +99,7 @@ pub fn parse_score_filters(input: &str) -> Result<ScoreFilter, anyhow::Error> {
     Ok(score_filter)
 }
 
-pub fn parse_range(input: &str) -> Result<RangeInclusive<usize>, anyhow::Error> {
+pub fn parse_range(input: &str) -> Result<RangeInclusive<usize>> {
     if let Ok(num) = input.parse::<usize>() {
         return Ok(num..=num);
     }
@@ -190,13 +190,13 @@ pub fn image_score_matches(meta: &ImageMeta, score_filter: &ScoreFilter) -> bool
     score_filter.allow_unscored
 }
 
-pub fn load_image_metas(meta_file_path: PathBuf) -> Result<Vec<ImageMeta>> {
+pub fn load_image_metas(meta_file_path: &Path) -> Result<Vec<ImageMeta>> {
     let data = fs::read_to_string(meta_file_path)?;
     let metas: Vec<ImageMeta> = serde_json::from_str(&data)?;
     Ok(metas)
 }
 
-pub fn get_all_images(base_directory: &PathBuf) -> Result<Vec<PathBuf>> {
+pub fn get_all_images(base_directory: &Path) -> Result<Vec<PathBuf>> {
     Ok(WalkDir::new(base_directory)
         .into_iter()
         .filter_map(Result::ok)

@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Result};
 use log::info;
 use std::path::Path;
 
@@ -13,12 +13,7 @@ pub fn handle_metadata_command(
     command: MetadataCommands,
     configuration: &Configuration,
 ) -> Result<()> {
-    let metadata_path = configuration
-        .metadata_path
-        .clone()
-        .context("metadata path must be set")?;
-
-    let all_metadatas = utils::common::load_image_metas(metadata_path)?;
+    let all_metadatas = utils::common::load_image_metas(&configuration.metadata_path)?;
 
     match command {
         MetadataCommands::Show => {

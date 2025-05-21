@@ -90,15 +90,15 @@ List images that match given selectors
 Usage: kanumi list [OPTIONS]
 
 Options:
-  -s, --scores <SCORE_FILTERS>      Filter based on score range
-  -W, --width <WIDTH_RANGE>         Filter based on width range
-  -H, --height <HEIGHT_RANGE>       Filter based on height range
-  -d, --directory <BASE_DIRECTORY>  Filter based on parent directory
-  -i, --ignore                      Ignore selectors preset from config
-  -v, --verbose...                  Increase logging verbosity
-  -j, --json                        Output in JSON
-  -q, --quiet...                    Decrease logging verbosity
-  -h, --help                        Print help
+  -d, --directories <ACTIVE_DIRECTORIES>  Filter based on parent directories
+  -s, --scores <SCORES>                   Filter based on score range
+  -W, --width <WIDTH_RANGE>               Filter based on width range
+  -H, --height <HEIGHT_RANGE>             Filter based on height range
+  -i, --ignore                            Ignore selectors preset from config
+  -v, --verbose...                        Increase logging verbosity
+  -j, --json                              Output in JSON
+  -q, --quiet...                          Decrease logging verbosity
+  -h, --help                              Print help
 ```
 
 #### Examples

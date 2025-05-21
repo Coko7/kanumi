@@ -9,13 +9,22 @@ use super::ScoreFilter;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Configuration {
     #[serde(rename = "root_path")]
-    pub root_images_dir: Option<PathBuf>,
+    pub root_images_dir: PathBuf,
 
     #[serde(rename = "meta_path")]
-    pub metadata_path: Option<PathBuf>,
+    pub metadata_path: PathBuf,
+
+    #[serde(rename = "filters")]
+    pub filters: ConfigurationFilters,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConfigurationFilters {
+    #[serde(rename = "active_dirs")]
+    pub active_directories: Option<Vec<PathBuf>>,
 
     #[serde(rename = "scores")]
-    pub score_filters: Option<Vec<ScoreFilter>>,
+    pub scores: Option<Vec<ScoreFilter>>,
 
     #[serde(rename = "width")]
     pub width_range: Option<RangeInclusive<usize>>,
@@ -26,23 +35,29 @@ pub struct Configuration {
 
 impl Configuration {
     pub fn create_default() -> Configuration {
-        let mut default_root_dir = None;
-        let mut default_meta_path = None;
+        let mut root_images_dir = PathBuf::new();
+        let mut metadata_path = PathBuf::new();
 
         if let Some(user_dirs) = UserDirs::new() {
+            info!("found user dirs: {:?}", user_dirs);
             if let Some(picture_dir) = user_dirs.picture_dir() {
                 info!("found user pictures dir: {}", picture_dir.display());
-                default_root_dir = Some(picture_dir.to_path_buf());
-                default_meta_path = Some(picture_dir.join("metadata.json"));
+                root_images_dir = picture_dir.to_path_buf();
+                metadata_path = picture_dir.join("metadatas.json");
             }
         }
 
-        Configuration {
-            root_images_dir: default_root_dir,
-            metadata_path: default_meta_path,
-            score_filters: None,
+        let filters = ConfigurationFilters {
+            active_directories: None,
+            scores: None,
             width_range: Some(RangeInclusive::new(0, 10_000)),
             height_range: Some(RangeInclusive::new(0, 10_000)),
+        };
+
+        Configuration {
+            root_images_dir,
+            metadata_path,
+            filters,
         }
     }
 

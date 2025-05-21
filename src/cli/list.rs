@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 use log::info;
 use std::{
     ops::RangeInclusive,
@@ -9,38 +9,36 @@ use crate::{models::ScoreFilter, utils};
 
 pub fn list_images_using_metadata(
     root_images_dir: &Path,
-    metadata_path: Option<PathBuf>,
+    metadata_path: &Path,
+    active_directories: Option<Vec<PathBuf>>,
     score_filters: Option<Vec<ScoreFilter>>,
     width_range: Option<RangeInclusive<usize>>,
     height_range: Option<RangeInclusive<usize>>,
-    base_directory: Option<PathBuf>,
     use_json_format: bool,
 ) -> Result<()> {
-    if metadata_path.is_none() {
-        bail!("No metadata file provided!");
-    }
-
-    let mut metas = utils::common::load_image_metas(metadata_path.unwrap())?;
+    let mut metas = utils::common::load_image_metas(metadata_path)?;
 
     info!("score_filters: {:?}", score_filters);
     info!("width_range: {:?}", width_range);
     info!("height_range: {:?}", height_range);
 
-    if let Some(base_directory) = base_directory {
-        info!("filter using base_directory: {:?}", base_directory);
-        metas.retain(|meta| {
-            let base_directory = if base_directory.is_absolute() {
-                base_directory.clone()
-            } else {
-                root_images_dir.join(&base_directory)
-            };
+    if let Some(active_dirs) = active_directories {
+        for active_dir in active_dirs.iter() {
+            info!("filter using active directory: {:?}", active_dir);
+            metas.retain(|meta| {
+                let base_directory = if active_dir.is_absolute() {
+                    active_dir.clone()
+                } else {
+                    root_images_dir.join(active_dir)
+                };
 
-            if let Some(img_base_dir) = meta.path.parent() {
-                img_base_dir == base_directory
-            } else {
-                false
-            }
-        });
+                if let Some(img_base_dir) = meta.path.parent() {
+                    img_base_dir == base_directory
+                } else {
+                    false
+                }
+            });
+        }
     }
 
     if width_range.is_some() || height_range.is_some() {

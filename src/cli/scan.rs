@@ -1,25 +1,21 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 use log::{debug, info, warn};
 use serde_json::json;
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::Path};
 
 use crate::{models::ImageMeta, utils};
 
 pub fn scan_images(
-    base_directory: &PathBuf,
-    metadata_path: Option<PathBuf>,
+    base_directory: &Path,
+    metadata_path: &Path,
     use_json_format: bool,
 ) -> Result<()> {
-    if metadata_path.is_none() {
-        bail!("No metadata file provided!");
-    }
-
     info!("scanning for missing metadata or images...");
 
     info!("about to run WalkDir on {}", base_directory.display());
-    let all_metas = utils::common::load_image_metas(metadata_path.unwrap())?;
+    let all_metas = utils::common::load_image_metas(metadata_path)?;
 
-    let mut mappings: HashMap<&PathBuf, Option<ImageMeta>> = HashMap::new();
+    let mut mappings: HashMap<&Path, Option<ImageMeta>> = HashMap::new();
     let images = utils::common::get_all_images(base_directory)?;
     for image_path in images.iter() {
         let matching_meta = all_metas
@@ -32,7 +28,7 @@ pub fn scan_images(
 
     debug!("created {} img:Option<meta> mappings", mappings.len());
 
-    let mut metaless_images: HashMap<String, &PathBuf> = HashMap::new();
+    let mut metaless_images: HashMap<String, &Path> = HashMap::new();
     for (img_path, metadata) in mappings.iter() {
         if metadata.is_none() {
             let hash = utils::common::compute_blake3_hash(img_path)?;
@@ -45,7 +41,7 @@ pub fn scan_images(
         metaless_images.len()
     );
 
-    let mut moved_images: HashMap<&PathBuf, &ImageMeta> = HashMap::new();
+    let mut moved_images: HashMap<&Path, &ImageMeta> = HashMap::new();
     let mut deleted_images: Vec<&ImageMeta> = vec![];
 
     for meta in all_metas.iter() {

@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -46,7 +46,7 @@ pub struct ImageMeta {
 }
 
 impl ImageMeta {
-    pub fn create_from_image(image: &PathBuf) -> Result<ImageMeta, anyhow::Error> {
+    pub fn create_from_image(image: &PathBuf) -> Result<ImageMeta> {
         let id = utils::common::compute_blake3_hash(image)?;
         let filename = image
             .file_name()

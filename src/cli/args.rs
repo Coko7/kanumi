@@ -34,9 +34,13 @@ pub enum Commands {
     /// List images that match given selectors
     #[command(name = "list", alias = "ls")]
     List {
+        /// Filter based on parent directories
+        #[arg(short = 'd', long = "directories")]
+        active_directories: Option<Vec<PathBuf>>,
+
         /// Filter based on score range
         #[arg(short = 's', long = "scores", value_parser = parse_score_filters)]
-        score_filters: Option<Vec<ScoreFilter>>,
+        scores: Option<Vec<ScoreFilter>>,
 
         /// Filter based on width range
         #[arg(short = 'W', long = "width", value_parser = parse_range)]
@@ -45,10 +49,6 @@ pub enum Commands {
         /// Filter based on height range
         #[arg(short = 'H', long = "height", value_parser = parse_range)]
         height_range: Option<RangeInclusive<usize>>,
-
-        /// Filter based on parent directory
-        #[arg(short = 'd', long = "directory")]
-        base_directory: Option<PathBuf>,
 
         /// Ignore selectors preset from config
         #[arg(short = 'i', long = "ignore")]
