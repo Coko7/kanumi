@@ -46,10 +46,8 @@ pub fn list_images_using_metadata(
 
             filtered_metas.extend(matching_metas);
         }
-    }
-
-    if filtered_metas.is_empty() {
-        info!("filtered_metas empty, filling with all metas");
+    } else {
+        info!("no active_dirs filters provided, setting filtered_metas to full list");
         filtered_metas.extend(metas);
     }
 
