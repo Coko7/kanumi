@@ -16,34 +16,46 @@ pub fn list_images_using_metadata(
     height_range: Option<RangeInclusive<usize>>,
     use_json_format: bool,
 ) -> Result<()> {
-    let mut metas = utils::common::load_image_metas(metadata_path)?;
+    let metas = utils::common::load_image_metas(metadata_path)?;
 
+    info!("active_directories: {:?}", active_directories);
     info!("score_filters: {:?}", score_filters);
     info!("width_range: {:?}", width_range);
     info!("height_range: {:?}", height_range);
 
+    let mut filtered_metas = vec![];
+
     if let Some(active_dirs) = active_directories {
         for active_dir in active_dirs.iter() {
             info!("filter using active directory: {:?}", active_dir);
-            metas.retain(|meta| {
-                let base_directory = if active_dir.is_absolute() {
-                    active_dir.clone()
-                } else {
-                    root_images_dir.join(active_dir)
-                };
+            let matching_metas: Vec<_> = metas
+                .iter()
+                .filter(|meta| {
+                    let base_directory = if active_dir.is_absolute() {
+                        active_dir.clone()
+                    } else {
+                        root_images_dir.join(active_dir)
+                    };
 
-                if let Some(img_base_dir) = meta.path.parent() {
-                    img_base_dir == base_directory
-                } else {
-                    false
-                }
-            });
+                    meta.path
+                        .ancestors()
+                        .any(|ancestor| ancestor == base_directory)
+                })
+                .cloned()
+                .collect();
+
+            filtered_metas.extend(matching_metas);
         }
+    }
+
+    if filtered_metas.is_empty() {
+        info!("filtered_metas empty, filling with all metas");
+        filtered_metas.extend(metas);
     }
 
     if width_range.is_some() || height_range.is_some() {
         info!("applying dimensions filter...");
-        metas.retain(|meta| {
+        filtered_metas.retain(|meta| {
             utils::common::image_matches_dims(&meta.path, &width_range, &height_range)
         });
     }
@@ -52,19 +64,19 @@ pub fn list_images_using_metadata(
         info!("applying image meta score filters...");
 
         for score_filter in score_filters.iter() {
-            metas.retain(|meta| utils::common::image_score_matches(meta, score_filter));
+            filtered_metas.retain(|meta| utils::common::image_score_matches(meta, score_filter));
         }
     }
 
     match use_json_format {
         true => {
             info!("outputting as json");
-            let metas_json = serde_json::to_string(&metas)?;
+            let metas_json = serde_json::to_string(&filtered_metas)?;
             println!("{}", metas_json);
         }
         false => {
             info!("outputting image paths only");
-            for meta in metas.iter() {
+            for meta in filtered_metas.iter() {
                 println!("{}", meta.path.display());
             }
         }
