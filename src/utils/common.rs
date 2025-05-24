@@ -243,3 +243,15 @@ pub fn create_banner(text: &str) -> String {
 
     format!("{outline}{empty}{center_part}{empty}{outline}")
 }
+
+pub fn get_image_by_path_or_id<'a>(
+    identifier: &str,
+    metadatas: &'a [ImageMeta],
+) -> Result<Option<&'a ImageMeta>> {
+    let path = Path::new(identifier);
+    if let Some(meta) = metadatas.iter().find(|m| m.path == path) {
+        return Ok(Some(meta));
+    }
+
+    Ok(metadatas.iter().find(|m| m.id == identifier))
+}

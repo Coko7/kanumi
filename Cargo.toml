@@ -12,6 +12,7 @@ clap = { version = "4.5.20", features = ["derive"] }
 clap-verbosity-flag = "2.2.2"
 directories = "6.0.0"
 env_logger = "0.11.5"
+fuzzy-matcher = "0.3.7"
 image = "0.25.5"
 log = "0.4.22"
 serde = { version = "1.0.214", features = ["derive"] }

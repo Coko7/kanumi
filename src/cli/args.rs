@@ -69,7 +69,11 @@ pub enum Commands {
 #[derive(Debug, Subcommand)]
 pub enum ConfigurationCommands {
     /// Print configuration and exit
-    Show,
+    Show {
+        /// Output in JSON
+        #[arg(short = 'j', long = "json")]
+        use_json_format: bool,
+    },
     /// Generate a default configuration file
     #[command(visible_alias = "gen")]
     Generate {
@@ -85,21 +89,25 @@ pub enum MetadataCommands {
     Show,
     /// Get the metadata associated to a given image file
     Get {
-        /// Path of the image file
-        image: PathBuf,
+        /// Metadata ID or path of the image file
+        identifier: OsString,
     },
     /// Search for metadata using a search string
     Search {
         /// The search query
         query: OsString,
+
+        /// Output in JSON
+        #[arg(short = 'j', long = "json")]
+        use_json_format: bool,
     },
     /// Update the metadata for an image
     Edit {
-        /// Path of the image file
-        image: PathBuf,
+        /// Metadata ID or path of the image file
+        identifier: OsString,
 
         /// Updated metadata string in JSON format
-        metadata: OsString,
+        payload: OsString,
     },
     /// Generate default metadata for a given image
     #[command(visible_alias = "gen")]
