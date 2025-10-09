@@ -50,6 +50,9 @@ pub enum Commands {
         #[arg(short = 'H', long = "height", value_parser = parse_range)]
         height_range: Option<RangeInclusive<usize>>,
 
+        #[arg(short = 't', long = "tags")]
+        tags: Option<Vec<String>>,
+
         /// Ignore selectors preset from config
         #[arg(short = 'i', long = "ignore")]
         ignore_config: bool,

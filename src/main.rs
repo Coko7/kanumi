@@ -52,6 +52,7 @@ fn process_args(args: Cli) -> Result<()> {
             scores,
             width_range,
             height_range,
+            tags,
             ignore_config,
             use_json_format,
         } => {
@@ -77,6 +78,7 @@ fn process_args(args: Cli) -> Result<()> {
                 score_filters,
                 width_range,
                 height_range,
+                tags,
                 use_json_format,
             )
         }

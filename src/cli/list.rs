@@ -14,6 +14,7 @@ pub fn list_images_using_metadata(
     score_filters: Option<Vec<ScoreFilter>>,
     width_range: Option<RangeInclusive<usize>>,
     height_range: Option<RangeInclusive<usize>>,
+    tags: Option<Vec<String>>,
     use_json_format: bool,
 ) -> Result<()> {
     let metas = utils::common::load_image_metas(metadata_path)?;
@@ -63,6 +64,14 @@ pub fn list_images_using_metadata(
 
         for score_filter in score_filters.iter() {
             filtered_metas.retain(|meta| utils::common::image_score_matches(meta, score_filter));
+        }
+    }
+
+    if let Some(tags) = tags {
+        info!("applying tags filters...");
+
+        for tag in tags.iter() {
+            filtered_metas.retain(|meta| meta.tags.contains(tag));
         }
     }
 
