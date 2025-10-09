@@ -1,7 +1,6 @@
-use std::path::Path;
-
 use anyhow::Result;
 use log::info;
+use std::path::Path;
 
 use super::ConfigurationCommands;
 use crate::{models::Configuration, utils};
@@ -19,7 +18,7 @@ pub fn handle_config_command(
             } else if display_format.toml {
                 show_config_as_toml(configuration, &config_path)
             } else {
-                show_config_as_toml(configuration, &config_path)
+                show_config_with_default_formatter(configuration, &config_path)
             }
         }
         ConfigurationCommands::Generate { dry_run: _ } => {
@@ -45,4 +44,11 @@ fn show_config_as_toml(configuration: &Configuration, config_path: &Path) -> Res
     let toml_config = configuration.to_toml_str()?;
     println!("{toml_config}");
     Ok(())
+}
+
+fn show_config_with_default_formatter(
+    configuration: &Configuration,
+    config_path: &Path,
+) -> Result<()> {
+    show_config_as_toml(configuration, config_path)
 }

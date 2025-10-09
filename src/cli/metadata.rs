@@ -1,11 +1,7 @@
 use anyhow::{bail, Context, Result};
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use log::{debug, error, info};
-use std::{
-    ffi::OsString,
-    path::{Path, PathBuf},
-    result,
-};
+use std::{ffi::OsString, path::Path};
 
 use crate::{
     models::{Configuration, ImageMeta},
@@ -122,7 +118,7 @@ fn search_metadata(query: OsString, metadatas: &[ImageMeta]) -> Result<Option<&I
 
 fn update_metadata(
     identifier: &OsString,
-    payload: &OsString,
+    _payload: &OsString,
     metadatas: &[ImageMeta],
 ) -> Result<()> {
     let identifier = identifier.to_string_lossy();
@@ -131,7 +127,7 @@ fn update_metadata(
         bail!("no matching metadata for: {identifier}");
     }
 
-    let meta = meta.unwrap();
+    // let meta = meta.unwrap();
     todo!()
 }
 
