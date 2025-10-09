@@ -6,7 +6,7 @@ edition = "2021"
 description = "A cli to manage collections of images"
 license = "GPL-3.0"
 repository = "https://github.com/Coko7/kanumi"
-keywords = ["cli", "wallpaper", "select", "images", "finder", "fzf", "command-line-tool", "clap-rs"]
+keywords = ["cli", "wallpaper", "images", "finder", "fzf"]
 categories = ["command-line-utilities", "filesystem"]
 
 [dependencies]
