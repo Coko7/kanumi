@@ -4,6 +4,10 @@ version = "0.1.0"
 authors = ["Coko <91132775+Coko7@users.noreply.github.com>"]
 edition = "2021"
 description = "A cli to manage collections of images"
+license = "GPL-3.0"
+repository = "https://github.com/Coko7/kanumi"
+keywords = ["cli", "wallpaper", "select", "images", "finder", "fzf", "command-line-tool", "clap-rs"]
+categories = ["command-line-utilities", "filesystem"]
 
 [dependencies]
 anyhow = "1.0.93"
