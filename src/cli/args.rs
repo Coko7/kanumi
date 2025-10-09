@@ -1,4 +1,4 @@
-use clap::{command, Parser, Subcommand};
+use clap::{command, ArgGroup, Args, Parser, Subcommand};
 use std::{ffi::OsString, ops::RangeInclusive, path::PathBuf};
 
 use crate::{
@@ -66,14 +66,27 @@ pub enum Commands {
     },
 }
 
+#[derive(Debug, Args)]
+#[command(group(
+    ArgGroup::new("format")
+        .args(["json", "toml"])
+        .multiple(false)
+))]
+pub struct ConfigShowFormatArgs {
+    /// Output in JSON
+    #[arg(short = 'j', long)]
+    pub json: bool,
+
+    /// Output in TOML (default)
+    #[arg(short = 't', long)]
+    pub toml: bool,
+}
+
 #[derive(Debug, Subcommand)]
 pub enum ConfigurationCommands {
     /// Print configuration and exit
-    Show {
-        /// Output in JSON
-        #[arg(short = 'j', long = "json")]
-        use_json_format: bool,
-    },
+    Show(ConfigShowFormatArgs),
+
     /// Generate a default configuration file
     #[command(visible_alias = "gen")]
     Generate {

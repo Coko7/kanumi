@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use anyhow::Result;
 use log::info;
 
@@ -9,22 +11,16 @@ pub fn handle_config_command(
     configuration: &Configuration,
 ) -> Result<()> {
     match command {
-        ConfigurationCommands::Show { use_json_format } => {
+        ConfigurationCommands::Show(display_format) => {
             let config_path = utils::common::get_config_file()?;
 
-            match use_json_format {
-                true => {
-                    let json_config = serde_json::to_string(configuration)?;
-                    println!("{json_config}");
-                }
-                false => {
-                    let banner = utils::common::create_banner(&config_path.display().to_string());
-                    println!("{banner}");
-                    let toml_config = configuration.to_toml_str()?;
-                    println!("{toml_config}");
-                }
+            if display_format.json {
+                show_config_as_json(configuration)
+            } else if display_format.toml {
+                show_config_as_toml(configuration, &config_path)
+            } else {
+                show_config_as_toml(configuration, &config_path)
             }
-            Ok(())
         }
         ConfigurationCommands::Generate { dry_run: _ } => {
             info!("generating default config...");
@@ -34,4 +30,19 @@ pub fn handle_config_command(
             Ok(())
         }
     }
+}
+
+fn show_config_as_json(configuration: &Configuration) -> Result<()> {
+    let json_config = serde_json::to_string(configuration)?;
+    println!("{json_config}");
+    Ok(())
+}
+
+fn show_config_as_toml(configuration: &Configuration, config_path: &Path) -> Result<()> {
+    let banner = utils::common::create_banner(&config_path.display().to_string());
+    println!("{banner}");
+
+    let toml_config = configuration.to_toml_str()?;
+    println!("{toml_config}");
+    Ok(())
 }
