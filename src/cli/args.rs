@@ -9,6 +9,7 @@ use crate::{
 #[derive(Debug, Parser)]
 #[command(name = "kanumi")]
 #[command(about = "Manage collection of images from your terminal", long_about = None)]
+#[command(version)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
