@@ -1,5 +1,5 @@
 use anyhow::Result;
-use log::info;
+use log::{debug, info};
 use std::{
     ops::RangeInclusive,
     path::{Path, PathBuf},
@@ -17,6 +17,7 @@ pub fn list_images_using_metadata(
     tags: Option<Vec<String>>,
     use_json_format: bool,
 ) -> Result<()> {
+    debug!("loading image metadatas");
     let metas = utils::common::load_image_metas(metadata_path)?;
 
     info!("active_directories: {:?}", active_directories);
@@ -75,6 +76,7 @@ pub fn list_images_using_metadata(
         }
     }
 
+    debug!("about to render output");
     match use_json_format {
         true => {
             info!("outputting as json");

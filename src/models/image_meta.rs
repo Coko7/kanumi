@@ -28,6 +28,8 @@ pub enum Color {
     White,
     #[serde(rename = "orange")]
     Orange,
+    #[serde(rename = "pink")]
+    Pink,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

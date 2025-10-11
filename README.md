@@ -15,6 +15,13 @@ coko7@example:~$ kanumi list --width=1920.. --height=1080 --scores favorite=3..7
 coko7@example:~$ kanumi list -W 1920.. -H 1080 -s favorite=3..7
 ```
 
+## Installation
+
+The easiest way to install is through [crates.io](https://crates.io/crates/kanumi):
+```console
+cargo install kanumi
+```
+
 ## Usage
 
 kanumi has multiple main commands:
