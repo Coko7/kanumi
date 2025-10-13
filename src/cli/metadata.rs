@@ -19,7 +19,8 @@ pub fn handle_metadata_command(
     match command {
         MetadataCommands::Show => {
             let metas_json = serde_json::to_string(&metadatas)?;
-            Ok(println!("{metas_json}"))
+            println!("{metas_json}");
+            Ok(())
         }
         MetadataCommands::Get { identifier } => get_metadata(&identifier, &metadatas),
         MetadataCommands::Edit {

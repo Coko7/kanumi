@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{bail, Context, Result};
 use log::{debug, info, warn};
 use std::{
     env,
@@ -42,7 +42,7 @@ pub fn get_config_dir() -> Result<PathBuf> {
         return Ok(val);
     }
 
-    Err(anyhow!("could not get config directory"))
+    bail!("could not get config directory")
 }
 
 pub fn get_config_file() -> Result<PathBuf> {
@@ -134,7 +134,7 @@ pub fn parse_range(input: &str) -> Result<RangeInclusive<usize>> {
             }
             Ok(*start..=*end)
         }
-        _ => Err(anyhow!("range should have at least one boundary")),
+        _ => bail!("range should have at least one boundary"),
     }
 }
 
