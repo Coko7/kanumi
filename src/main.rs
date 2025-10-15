@@ -2,12 +2,13 @@ use anyhow::{ensure, Result};
 use clap::Parser;
 use cli::{Cli, Commands};
 use log::{error, info, warn};
+use std::process::ExitCode;
 
 mod cli;
 mod models;
 mod utils;
 
-fn main() -> Result<()> {
+fn main() -> ExitCode {
     let args = Cli::parse();
     env_logger::Builder::new()
         .filter_level(args.verbose.log_level_filter())
@@ -15,10 +16,10 @@ fn main() -> Result<()> {
 
     info!("process cli args");
     match process_args(args) {
-        Ok(_) => Ok(()),
+        Ok(_) => ExitCode::SUCCESS,
         Err(e) => {
-            error!("critical failure: {}", e);
-            Err(e)
+            error!("{}", e);
+            ExitCode::FAILURE
         }
     }
 }

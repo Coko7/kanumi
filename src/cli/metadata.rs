@@ -1,7 +1,7 @@
 use anyhow::{bail, Context, Result};
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
-use log::{debug, error, info};
-use std::{ffi::OsString, path::Path};
+use log::{debug, info};
+use std::ffi::OsString;
 
 use crate::{
     models::{Configuration, ImageMeta},
@@ -49,7 +49,7 @@ pub fn handle_metadata_command(
             query,
             use_json_format,
         } => {
-            let result = search_metadata(query, &metadatas)?;
+            let result = search_metadata(configuration, query, &metadatas)?;
             if let Some(metadata) = result {
                 match use_json_format {
                     true => {
@@ -69,20 +69,35 @@ pub fn handle_metadata_command(
     }
 }
 
-fn search_metadata(query: OsString, metadatas: &[ImageMeta]) -> Result<Option<&ImageMeta>> {
+fn search_metadata(
+    configuration: &Configuration,
+    query: OsString,
+    metadatas: &[ImageMeta],
+) -> Result<Option<ImageMeta>> {
     let query = query.to_string_lossy().into_owned();
-    let path = Path::new(&query);
     let matcher = SkimMatcherV2::default();
     let mut best_score = -1;
     let mut meta_scores: Vec<(&ImageMeta, i64)> = Vec::new();
 
     for meta in metadatas.iter() {
-        if meta.path == path {
-            return Ok(Some(meta));
+        // Test for exact match
+        if meta.path.to_str().context("meta path should be a string")? == query {
+            return Ok(Some(meta.clone()));
         }
 
-        let meta_path_str = meta.path.to_str().context("string expected here bro")?;
-        if let Some(score) = matcher.fuzzy_match(meta_path_str, &query) {
+        let root_images_dir = configuration
+            .root_images_dir
+            .to_str()
+            .context("root images dir should be a valid string")?;
+
+        let local_meta_path_str = meta
+            .path
+            .to_str()
+            .context("meta path should be a string")?
+            .strip_prefix(root_images_dir)
+            .context("meta path should have root path prefix")?;
+
+        if let Some(score) = matcher.fuzzy_match(local_meta_path_str, &query) {
             debug!("fuzzy: score for `{}`: `{}`", meta.path.display(), score);
 
             meta_scores.push((meta, score));
@@ -93,25 +108,28 @@ fn search_metadata(query: OsString, metadatas: &[ImageMeta]) -> Result<Option<&I
         }
     }
 
-    let mut best_candidates = meta_scores.iter().filter(|tuple| tuple.1 == best_score);
+    let best_candidates: Vec<_> = meta_scores
+        .iter()
+        .filter(|tuple| tuple.1 == best_score)
+        .collect();
 
     // More than one candidate
-    if best_candidates.clone().count() > 1 {
-        error!("fuzzy: multiple best candidates: {:#?}", best_candidates);
+    if best_candidates.len() > 1 {
+        debug!("matches: {}", best_candidates.len());
 
-        let candidates_labels: String = best_candidates
-            .map(|tuple| format!("`{}`", tuple.0.path.to_str().unwrap()))
-            .collect::<Vec<String>>()
-            .join(", ");
+        for candidate in best_candidates.iter() {
+            debug!("{} -> {}", candidate.0.path.display(), candidate.1);
+        }
 
         bail!(
-            "Failed to find a single best match, there are several candidates: {}",
-            candidates_labels
+            "too many matches for `{}`: {} results",
+            query,
+            best_candidates.len()
         );
     }
 
-    if let Some(best_match) = best_candidates.next() {
-        return Ok(Some(best_match.0));
+    if let Some(best_match) = best_candidates.first() {
+        return Ok(Some(best_match.0.clone()));
     }
 
     Ok(None)
