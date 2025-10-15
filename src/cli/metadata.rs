@@ -62,7 +62,6 @@ pub fn handle_metadata_command(
                         println!("{}", metadata.path.display());
                     }
                 };
-                println!("{}", metadata.path.display());
             }
             Ok(())
         }
