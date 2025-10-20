@@ -49,6 +49,7 @@ Options:
   -v, --verbose...  Increase logging verbosity
   -q, --quiet...    Decrease logging verbosity
   -h, --help        Print help
+  -V, --version     Print version
 ```
 
 ### ⚙️ `config` command
