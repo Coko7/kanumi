@@ -2,6 +2,8 @@
 
 A CLI to manage collection of images.
 
+![demo](https://github.com/user-attachments/assets/a0a83011-d028-400b-930e-f7f6826d4342)
+
 ## What is it?
 
 I have lots of wallpapers on my computer and I wanted a way to easily filter them and pipe them to other scripts.
